@@ -12,7 +12,7 @@ class J_21():
     Initializes GPIO of the Jetson TX2
     Has several meethods for GPIO control
     '''
-    def __init__(self, gpio_out:list=None,gpio_out_init:bool=True, gpio_in:list=None):
+    def __init__(self, gpio_out:list=None,gpio_out_init:bool=False, gpio_in:list=None):
         GPIO.setmode(GPIO.BCM)
         if gpio_out:
             if gpio_out_init:
@@ -60,10 +60,11 @@ class PingDeviceClass():
         Pings given IP in a thread and puts 0/1 result in
         a queue. Adds an error into the error queue if defined.
         '''
+        global reboot_time
         while True:
             p_ping = subprocess.Popen(["ping", "-c", "4", "-W", "1", ip_addr],
                                        shell = False, stdout = subprocess.PIPE)
-            if p_ping.wait() == 1:
+            if p_ping.wait() == 1 and (time.time()-reboot_time)>60:
                 logging.info(f'{ip_addr} NOT ACCESSIBLE')
     def run(self)->None:
         '''
@@ -95,13 +96,19 @@ def main()->None:
     ping = PingDeviceClass(ip_list) 
     ping.run()
     cur_time = time.time()
+    global reboot_time
+    reboot_time = cur_time
     logging.info(f'Test started at {pretty_time()}')
     try:
         while True:
-            if time.time()-cur_time > 4:
+            if time.time()-cur_time > 3600:
+                print("TRUE")
                 relay.write(12, False)
                 sleep(3)
                 relay.write(12, True)
+                logging.info(f'Rebooted nav modules at {pretty_time()}')
+                reboot_time = time.time()
+                cur_time = time.time()
             sleep(1)
     except (KeyboardInterrupt, SystemExit):
         relay.clean()
