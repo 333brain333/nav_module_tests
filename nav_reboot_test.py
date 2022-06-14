@@ -7,6 +7,14 @@ import logging
 import subprocess
 from datetime import datetime
 from threading import Thread
+
+def StateMachine(devs:list)->dict:
+    '''
+    Returns a dict with a given ips as
+    a keys and 0 as a respective value
+    '''
+    return dict(zip(devs, [0]*len(devs)))
+
 class J_21():
     '''
     Initializes GPIO of the Jetson TX2
@@ -50,8 +58,9 @@ class PingDeviceClass():
     Starts a thread for a given list of a ip addresses.
     Each thread pings given ip and adds relust into a queue
     '''
-    def __init__(self, ip_list:list)->None:
+    def __init__(self, ip_list:list, states:dict)->None:
         self.ip_list = ip_list
+        self.states = states
     def thread_pinger(self,
                       i:int,
                       ip_addr,
@@ -64,8 +73,15 @@ class PingDeviceClass():
         while True:
             p_ping = subprocess.Popen(["ping", "-c", "4", "-W", "1", ip_addr],
                                        shell = False, stdout = subprocess.PIPE)
-            if p_ping.wait() == 1 and (time.time()-reboot_time)>60:
-                logging.info(f'{ip_addr} NOT ACCESSIBLE')
+            if p_ping.wait() == 1 and\
+                    (time.time()-reboot_time)>60\
+                    and self.states[ip_addr] == 0:
+                self.states[ip_addr] = 1
+                logging.info(f'{pretty_time()}: {ip_addr} becomes NOT ACCESSIBLE')
+            elif p_ping.wait() == 0 and\
+                    self.states[ip_addr] == 1:
+                self.states[ip_addr] = 0
+                logging.info(f'{pretty_time()}: {ip_addr} becomes ACCESSIBLE')
     def run(self)->None:
         '''
         Starts threads that will ping each ip in the
@@ -92,8 +108,9 @@ def main()->None:
     '''
     logging.basicConfig(filename=f'debug_log_{pretty_time()}.txt', level=logging.DEBUG)
     ip_list = nav_modules_ips_to_ping.list
+    states = StateMachine(ip_list) 
     relay = J_21(gpio_out = [12])
-    ping = PingDeviceClass(ip_list) 
+    ping = PingDeviceClass(ip_list, states) 
     ping.run()
     cur_time = time.time()
     global reboot_time
