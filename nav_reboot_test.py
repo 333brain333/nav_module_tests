@@ -71,7 +71,7 @@ class PingDeviceClass():
         '''
         global reboot_time
         while True:
-            p_ping = subprocess.Popen(["ping", "-c", "4", "-W", "1", ip_addr],
+            p_ping = subprocess.Popen(["ping", "-c", "4", "-W", "1", "-I","eth0", ip_addr],
                                        shell = False, stdout = subprocess.PIPE)
             if p_ping.wait() == 1 and\
                     (time.time()-reboot_time)>60\
