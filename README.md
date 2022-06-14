@@ -1,5 +1,6 @@
 # Usage
 ## Reboot test:
+![Reboot setup](reboot_setup.png "Reboot setup")
 To start reboot test, enter command `./start_reboot_test.py`. To stop, press `CTRL+C`.
 To configure ips to ping, write them down in the `nav_modules_ips_to_ping.py` into list.
 # Additionall info
